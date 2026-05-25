@@ -1,0 +1,24 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../base
+  - secret.yml
+  - ingress.yml
+images:
+  - name: storepro-backend
+    newName: ghcr.io/y4mix77/isgaarti-backend
+    newTag: latest
+  - name: storepro-frontend
+    newName: ghcr.io/y4mix77/isgaarti-frontend
+    newTag: latest
+patches:
+  - path: production-patch.yml
+  - target:
+      kind: Service
+      name: frontend
+    patch: |-
+      - op: replace
+        path: /spec/type
+        value: ClusterIP
+      - op: remove
+        path: /spec/ports/0/nodePort

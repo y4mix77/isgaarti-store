@@ -2,6 +2,7 @@
 .env.*
 !.env.example
 k8s/02-secret.yml
+k8s/overlays/*/secret.yml
 
 node_modules/
 dist/

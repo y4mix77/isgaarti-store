@@ -98,13 +98,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Create CI secret manifest
-        run: cp k8s/02-secret.example.yml k8s/02-secret.yml
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v4
+
+      - name: Create CI secret manifests
+        run: |
+          cp k8s/overlays/local/secret.example.yml k8s/overlays/local/secret.yml
+          cp k8s/overlays/production/secret.example.yml k8s/overlays/production/secret.yml
 
       - name: Validate Kubernetes YAML
         run: |
+          kubectl kustomize k8s/overlays/local > /tmp/isgaarti-local.yml
+          kubectl kustomize k8s/overlays/production > /tmp/isgaarti-production.yml
           ruby -ryaml -e '
-            files = Dir["k8s/*.yml"].reject { |file| file.end_with?("06-ingress.yml") }
+            files = ["/tmp/isgaarti-local.yml", "/tmp/isgaarti-production.yml"]
             files.each do |file|
               docs = YAML.load_stream(File.read(file))
               raise "#{file} is empty" if docs.empty?

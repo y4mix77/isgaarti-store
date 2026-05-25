@@ -1,71 +1,104 @@
-# ISGAARTI Kubernetes Local Deployment
+# ISGAARTI Kubernetes Deployment
 
-These manifests deploy the Dockerized project to Docker Desktop Kubernetes.
+This folder uses Kustomize to separate shared Kubernetes resources from environment-specific deployment choices.
 
-## 1. Build images locally
-
-```powershell
-docker compose -f docker-compose.prod.yml build
-```
-
-## 2. Create a real Kubernetes secret
-
-Copy `02-secret.example.yml` to `02-secret.yml`, fill the real values, and keep `02-secret.yml` private.
-
-```powershell
-Copy-Item k8s\02-secret.example.yml k8s\02-secret.yml
-```
-
-## 3. Deploy
-
-```powershell
-kubectl apply -f k8s\00-namespace.yml
-kubectl apply -f k8s\01-configmap.yml
-kubectl apply -f k8s\02-secret.yml
-kubectl apply -f k8s\03-postgres.yml
-kubectl apply -f k8s\04-backend.yml
-kubectl apply -f k8s\05-frontend.yml
-```
-
-## 4. Check status
-
-```powershell
-kubectl get pods -n isgaarti
-kubectl get svc -n isgaarti
-```
-
-## 5. Open frontend
-
-Docker Desktop should expose the frontend LoadBalancer on:
+## Structure
 
 ```text
-http://localhost:4301
+k8s/
+  base/
+    namespace.yml
+    configmap.yml
+    postgres.yml
+    backend.yml
+    frontend.yml
+    kustomization.yml
+
+  overlays/
+    local/
+      kustomization.yml
+      secret.example.yml
+
+    production/
+      kustomization.yml
+      production-patch.yml
+      secret.example.yml
+      ingress.yml
 ```
 
-If the LoadBalancer does not expose the port, use port-forward:
+## Local Docker Desktop Deployment
 
-```powershell
-kubectl port-forward -n isgaarti svc/frontend 4301:4301
-```
-
-## Optional ingress
-
-`06-ingress.yml` is ready for a local or cloud ingress controller. For Docker Desktop, a simple LoadBalancer service is usually enough.
-
-## GitHub Container Registry images
-
-The GitHub Actions workflow publishes production images on every push to `main`:
-
-```text
-ghcr.io/y4mix77/isgaarti-backend:latest
-ghcr.io/y4mix77/isgaarti-frontend:latest
-```
-
-For local Docker Desktop Kubernetes, the manifests use local images:
+Local mode uses the Docker images already built on your machine:
 
 ```text
 storepro-backend:latest
 storepro-frontend:latest
 ```
 
-For a cloud cluster, replace the deployment images with the GHCR image names and use `imagePullPolicy: IfNotPresent`.
+Create the real local secret:
+
+```powershell
+Copy-Item k8s\overlays\local\secret.example.yml k8s\overlays\local\secret.yml
+notepad k8s\overlays\local\secret.yml
+```
+
+Build local images:
+
+```powershell
+docker compose -f docker-compose.prod.yml build
+```
+
+Deploy:
+
+```powershell
+kubectl apply -k k8s\overlays\local
+```
+
+Check:
+
+```powershell
+kubectl get pods -n isgaarti
+kubectl get svc -n isgaarti
+```
+
+Open:
+
+```text
+http://localhost:30431
+```
+
+## Production Overlay
+
+Production mode uses the GitHub Container Registry images published by GitHub Actions:
+
+```text
+ghcr.io/y4mix77/isgaarti-backend:latest
+ghcr.io/y4mix77/isgaarti-frontend:latest
+```
+
+Create the real production secret:
+
+```powershell
+Copy-Item k8s\overlays\production\secret.example.yml k8s\overlays\production\secret.yml
+notepad k8s\overlays\production\secret.yml
+```
+
+Render before applying:
+
+```powershell
+kubectl kustomize k8s\overlays\production
+```
+
+Deploy to a production Kubernetes cluster:
+
+```powershell
+kubectl apply -k k8s\overlays\production
+```
+
+## Notes
+
+- `secret.yml` files are ignored by git.
+- `secret.example.yml` files are safe templates.
+- Local Kubernetes keeps `imagePullPolicy: Never`.
+- Production Kubernetes switches to `imagePullPolicy: IfNotPresent`.
+- Production includes `ingress.yml`; local Docker Desktop uses the fixed NodePort `30431`.
