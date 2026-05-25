@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: isgaarti-config
+  namespace: isgaarti
+data:
+  SERVER_PORT: "8080"
+  DATABASE_URL: "jdbc:postgresql://postgres:5432/boutique_db"
+  DATABASE_USERNAME: "postgres"
+  JWT_EXPIRATION_MS: "86400000"
+  STRIPE_SUCCESS_URL: "http://localhost:4301/panier?stripe_session_id={CHECKOUT_SESSION_ID}"
+  STRIPE_CANCEL_URL: "http://localhost:4301/panier?payment=cancelled"
+  STRIPE_RETURN_URL: "http://localhost:4301/panier?stripe_session_id={CHECKOUT_SESSION_ID}"
+  CORS_ALLOWED_ORIGIN_PATTERNS: "http://localhost:*,http://127.0.0.1:*"
+  JPA_SHOW_SQL: "false"
+  JPA_FORMAT_SQL: "false"
