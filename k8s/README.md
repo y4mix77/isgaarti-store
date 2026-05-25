@@ -51,3 +51,21 @@ kubectl port-forward -n isgaarti svc/frontend 4301:4301
 ## Optional ingress
 
 `06-ingress.yml` is ready for a local or cloud ingress controller. For Docker Desktop, a simple LoadBalancer service is usually enough.
+
+## GitHub Container Registry images
+
+The GitHub Actions workflow publishes production images on every push to `main`:
+
+```text
+ghcr.io/y4mix77/isgaarti-backend:latest
+ghcr.io/y4mix77/isgaarti-frontend:latest
+```
+
+For local Docker Desktop Kubernetes, the manifests use local images:
+
+```text
+storepro-backend:latest
+storepro-frontend:latest
+```
+
+For a cloud cluster, replace the deployment images with the GHCR image names and use `imagePullPolicy: IfNotPresent`.
