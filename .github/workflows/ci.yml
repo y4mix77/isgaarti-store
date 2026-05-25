@@ -89,18 +89,23 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup kubectl
-        uses: azure/setup-kubectl@v4
-
       - name: Create CI secret manifest
         run: cp k8s/02-secret.example.yml k8s/02-secret.yml
 
       - name: Validate Kubernetes YAML
         run: |
-          kubectl apply --dry-run=client --validate=false \
-            -f k8s/00-namespace.yml \
-            -f k8s/01-configmap.yml \
-            -f k8s/02-secret.yml \
-            -f k8s/03-postgres.yml \
-            -f k8s/04-backend.yml \
-            -f k8s/05-frontend.yml
+          ruby -ryaml -e '
+            files = Dir["k8s/*.yml"].reject { |file| file.end_with?("06-ingress.yml") }
+            files.each do |file|
+              docs = YAML.load_stream(File.read(file))
+              raise "#{file} is empty" if docs.empty?
+
+              docs.each_with_index do |doc, index|
+                raise "#{file} document #{index + 1} is not a mapping" unless doc.is_a?(Hash)
+                %w[apiVersion kind metadata].each do |key|
+                  raise "#{file} document #{index + 1} missing #{key}" unless doc[key]
+                end
+                raise "#{file} document #{index + 1} missing metadata.name" unless doc.dig("metadata", "name")
+              end
+            end
+          '
